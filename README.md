@@ -8,11 +8,12 @@ Para o desenho geral do sistema, ver [ARCHITECTURE.md](./ARCHITECTURE.md). Para 
 
 ## Stack
 
-Node.js 22 + Express 5 + TypeScript 6 + Prisma 7 + PostgreSQL
+**Backend:** Node.js 22 + Express 5 + TypeScript 6 + Prisma 7 + PostgreSQL
+**Frontend:** React + TypeScript + Vite + Tailwind CSS + React Router + TanStack Query
 
 ## Status
 
-O núcleo funcional do produto está pronto e testado: um usuário se cadastra, cria links, qualquer visitante é redirecionado pelo slug (com o clique registrado em segundo plano) e o usuário acompanha analytics agregados por link.
+O núcleo funcional do produto está pronto e testado: um usuário se cadastra, cria links, qualquer visitante é redirecionado pelo slug (com o clique registrado em segundo plano) e o usuário acompanha analytics agregados por link — tanto pela API quanto pelo dashboard.
 
 - [x] Schema Prisma + migration inicial
 - [x] Auth (registro/login, JWT)
@@ -21,8 +22,9 @@ O núcleo funcional do produto está pronto e testado: um usuário se cadastra, 
 - [x] Analytics de cliques (por dia, dispositivo, referrer, país)
 - [x] Testes automatizados (48 testes — unitários + integração)
 - [x] CI (GitHub Actions — type-check, testes e build a cada push/PR)
-- [x] Deploy (Render — [ao vivo](https://tracer-api-2ywo.onrender.com/health))
-- [ ] Frontend (dashboard)
+- [x] Deploy do backend (Render — [ao vivo](https://tracer-api-2ywo.onrender.com/health))
+- [x] Frontend (dashboard: auth, links, analytics com gráfico) — roda local, deploy pendente
+- [ ] Deploy do frontend
 
 ## Como rodar localmente
 
@@ -83,6 +85,19 @@ A API sobe em `http://localhost:3000`. Verifique com:
 curl http://localhost:3000/health
 ```
 
+## Como rodar o frontend localmente
+
+O frontend é um projeto Vite/React separado, em `frontend/`. Com o backend já rodando (passos acima) num terminal:
+
+```bash
+cd frontend
+npm install
+cp .env.example .env   # VITE_API_URL=http://localhost:3000 (padrão já serve para dev local)
+npm run dev
+```
+
+O dashboard sobe em `http://localhost:5173`. Crie uma conta pela própria tela de cadastro — não há seed de usuário.
+
 ## Rodando os testes
 
 A suíte usa um banco Postgres de teste separado (`tracer_test`), para nunca tocar nos dados do banco de desenvolvimento.
@@ -141,7 +156,7 @@ O plano free do Render hiberna o serviço depois de um tempo sem tráfego — o 
 
 ```
 tracer/
-├── src/
+├── src/                 # Backend (Express + Prisma)
 │   ├── app.ts          # Config do Express
 │   ├── server.ts       # Conecta o Prisma e sobe o servidor
 │   ├── utils/prisma.ts # Singleton do PrismaClient
@@ -151,7 +166,13 @@ tracer/
 │   └── migrations/
 ├── tests/
 │   └── integration/    # Testes de ponta a ponta via supertest
-└── prisma.config.ts
+├── prisma.config.ts
+└── frontend/            # Dashboard (React + Vite), projeto npm independente
+    └── src/
+        ├── components/
+        ├── pages/
+        ├── lib/         # cliente Axios + helpers de sessão
+        └── types/
 ```
 
-Detalhes de cada camada em [ARCHITECTURE.md](./ARCHITECTURE.md#camadas), estratégia de testes em [ARCHITECTURE.md](./ARCHITECTURE.md#testes).
+Detalhes de cada camada em [ARCHITECTURE.md](./ARCHITECTURE.md#camadas), do frontend em [ARCHITECTURE.md](./ARCHITECTURE.md#frontend), estratégia de testes em [ARCHITECTURE.md](./ARCHITECTURE.md#testes).

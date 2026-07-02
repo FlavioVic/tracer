@@ -1,6 +1,6 @@
 # Tracer
 
-Painel de links inteligente com analytics. API única em Node.js + Express + TypeScript + Prisma + PostgreSQL. Para o desenho geral do sistema, ver [ARCHITECTURE.md](./ARCHITECTURE.md); para o porquê de cada escolha, ver [DECISIONS.md](./DECISIONS.md).
+Painel de links inteligente com analytics. Backend em Node.js + Express + TypeScript + Prisma + PostgreSQL, frontend em React + TypeScript + Vite + Tailwind (projeto separado em `frontend/`). Para o desenho geral do sistema, ver [ARCHITECTURE.md](./ARCHITECTURE.md); para o porquê de cada escolha, ver [DECISIONS.md](./DECISIONS.md).
 
 ## Estrutura
 
@@ -36,6 +36,24 @@ tracer/
 
 Cada feature nova (ex.: links) ganha seu próprio arquivo em `routes/`, `controllers/`, `services/`, `repositories/` e `schemas/`, seguindo o padrão criado pela feature de auth — ver a divisão de responsabilidades em [ARCHITECTURE.md](./ARCHITECTURE.md#camadas).
 
+### Frontend (`frontend/`)
+
+Projeto npm independente (Vite + React + TypeScript + Tailwind CSS v4), não faz parte do build/testes do backend.
+
+```
+frontend/
+├── src/
+│   ├── components/        # Sidebar, Header, Button, Input, StatTile, ClicksChart,
+│   │                       # BreakdownCard, DashboardLayout, ProtectedRoute, icons.tsx
+│   ├── pages/               # LoginPage, RegisterPage, LinksPage, LinkAnalyticsPage
+│   ├── lib/                  # api.ts (Axios + interceptor de Authorization), auth.ts
+│   ├── types/api.ts           # tipos espelhando as respostas reais do backend
+│   └── index.css               # tokens de cor/fonte via @theme (Tailwind v4)
+└── .env                     # VITE_API_URL
+```
+
+Convenções: estado de servidor sempre via `@tanstack/react-query` (sem Context/Redux próprio para isso); mutações invalidam a query correspondente em vez de atualizar o cache manualmente. Rotas protegidas usam `<ProtectedRoute>` (checa token no `localStorage`, redireciona pra `/login`). Cores/tipografia são definidas primeiro no [Claude Design](https://claude.ai/design) (projeto "Tracer") e só depois replicadas em `@theme` — ao mudar uma cor, atualizar os dois lugares. Ver [decisão #27](./DECISIONS.md#27-frontend-em-projeto-separado-frontend-design-desenhado-antes-de-codar) e [ARCHITECTURE.md#frontend](./ARCHITECTURE.md#frontend).
+
 ## ⚠️ Ambiente WSL
 
 Node.js é instalado via **nvm dentro do WSL** — nunca usar o Node do Windows para rodar este projeto. O Node do Windows causa erro de UNC path com npm ao acessar o filesystem via caminho Linux (`\\wsl$\...`). Ver [decisão #1](./DECISIONS.md#1-nodejs-via-nvm-no-wsl).
@@ -52,6 +70,8 @@ npm test              # Roda toda a suíte (unitários + integração) uma vez
 npm run test:watch    # Modo watch
 npm run typecheck     # tsc --noEmit cobrindo src/ E tests/ (o build normal não checa tests/)
 ```
+
+Frontend (dentro de `frontend/`, projeto npm separado): `npm run dev` (Vite, porta 5173), `npm run build`, `npx tsc --noEmit`. Precisa do backend rodando em paralelo (porta 3000) — ver [README.md](./README.md#como-rodar-o-frontend-localmente).
 
 ### Prisma
 

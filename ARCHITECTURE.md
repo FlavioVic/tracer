@@ -9,10 +9,18 @@ Este documento descreve como o sistema está montado. Para o porquê de cada esc
                     │   Browser   │
                     └──────┬──────┘
                            │ HTTP
-                    ┌──────▼──────────┐
-                    │  Express :3000  │
-                    │  (app.ts)       │
-                    └──────┬──────────┘
+              ┌────────────┴────────────┐
+              │                         │ GET /:slug (redirect direto)
+       ┌──────▼──────────┐              │
+       │ React SPA :5173 │              │
+       │ (frontend/)     │              │
+       └──────┬──────────┘              │
+              │ fetch/axios (JSON)      │
+              ▼                         ▼
+                    ┌──────────────────┐
+                    │  Express :3000   │
+                    │  (app.ts)        │
+                    └──────┬───────────┘
                            │
               ┌────────────┼────────────┐
               │            │            │
@@ -30,14 +38,15 @@ Este documento descreve como o sistema está montado. Para o porquê de cada esc
                                    └─────────────┘
 ```
 
-Aplicação monolítica única: um processo Node.js/Express expõe a API, que fala com um único PostgreSQL via Prisma. Não há proxy reverso, cache ou comunicação entre serviços — tudo roda num único processo, adequado ao estágio e à escala atuais do projeto (ver [decisão #9](./DECISIONS.md#9-um-único-serviço-um-único-banco)).
+Backend monolítico único: um processo Node.js/Express expõe a API, que fala com um único PostgreSQL via Prisma. Não há proxy reverso, cache ou comunicação entre serviços no backend — tudo roda num único processo, adequado ao estágio e à escala atuais do projeto (ver [decisão #9](./DECISIONS.md#9-um-único-serviço-um-único-banco)). O frontend é um segundo processo/projeto independente (SPA em React servida pelo Vite em dev) que fala com a API só por HTTP — não há import de código entre os dois lados (ver [decisão #27](./DECISIONS.md#27-frontend-em-projeto-separado-frontend-design-desenhado-antes-de-codar)). O link curto em si (`GET /:slug`) é acessado direto no backend pelo navegador do visitante — não passa pelo React.
 
 ## Alocação de Portas
 
-| Serviço              | Protocolo | Porta | Exposição |
-| -------------------- | --------- | ----- | --------- |
-| Express (Tracer API) | HTTP      | 3000  | Local/dev |
-| PostgreSQL           | TCP       | 5432  | Local/dev |
+| Serviço               | Protocolo | Porta | Exposição |
+| ---------------------- | --------- | ----- | --------- |
+| Express (Tracer API)   | HTTP      | 3000  | Local/dev |
+| Vite (Tracer frontend) | HTTP      | 5173  | Local/dev |
+| PostgreSQL             | TCP       | 5432  | Local/dev |
 
 ## Camadas
 
@@ -135,6 +144,34 @@ Rotas protegidas (a partir da feature de links):
 
 `GET /:slug` (o redirecionamento em si) será público — não exige autenticação.
 
+## Frontend
+
+`frontend/` é um projeto Vite + React + TypeScript independente (`package.json` próprio, ver [decisão #27](./DECISIONS.md#27-frontend-em-projeto-separado-frontend-design-desenhado-antes-de-codar)). Estrutura:
+
+```
+frontend/src/
+├── components/    # Sidebar, Header, Button, Input, StatTile, ClicksChart,
+│                  # BreakdownCard, DashboardLayout, ProtectedRoute, icons.tsx
+├── pages/         # LoginPage, RegisterPage, LinksPage, LinkAnalyticsPage
+├── lib/           # api.ts (instância Axios com baseURL + interceptor de Authorization),
+│                  # auth.ts (token/usuário no localStorage)
+└── types/api.ts   # tipos espelhando as respostas reais do backend
+```
+
+Rotas (`react-router-dom`):
+
+```
+/login, /register            → públicas
+/                             → ProtectedRoute → DashboardLayout → LinksPage
+/links/:id                    → ProtectedRoute → DashboardLayout → LinkAnalyticsPage
+```
+
+`ProtectedRoute` checa a presença de um token no `localStorage` (sem validar o JWT no client — se o token expirou, a primeira chamada à API volta 401 e a UI trata como erro, não como logout automático ainda). Estado de servidor (lista de links, analytics) vive inteiramente em `@tanstack/react-query` — sem Redux/Zustand/Context próprio para isso; mutações (`criar link`, `desativar`) invalidam a query `["links"]` para refletir na tabela sem refetch manual.
+
+`ClicksChart` (gráfico de cliques por dia) é SVG desenhado à mão com React hooks — não usa `recharts` (instalado, mas reservado para gráficos futuros mais complexos) nem `d3`; a lógica de escala/hover/crosshair é a mesma do componente estático prototipado no Claude Design, só que dirigida por dados reais e de tamanho variável.
+
+Tokens de cor/tipografia ficam em `@theme` dentro de `src/index.css` (Tailwind v4) — mesmos valores usados no projeto do Claude Design (paleta, ver decisão #27), então trocar o design system em um lugar não dessincroniza do outro por muito tempo.
+
 ## Estado da Implementação
 
 - [x] Schema Prisma (`User`/`Link`/`Click`) definido e client gerado
@@ -147,6 +184,9 @@ Rotas protegidas (a partir da feature de links):
 - [x] Endpoints de analytics (`GET /api/links/:id/analytics`, agregação por dia/dispositivo/referrer/país)
 - [x] Testes automatizados (unitários + integração, 48 testes cobrindo auth/links/redirect/analytics)
 - [x] CI (GitHub Actions — type-check, testes e build a cada push/PR para `main`)
+- [x] Frontend: auth (login/registro), CRUD de link (criar/listar/desativar), analytics por link com gráfico interativo
+- [ ] Frontend: página de configurações, refresh de token
+- [ ] Deploy do frontend (só roda local por enquanto)
 
 ## Testes
 
