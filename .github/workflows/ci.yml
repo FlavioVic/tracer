@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tracer
+          POSTGRES_PASSWORD: tracer
+          POSTGRES_DB: tracer_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://tracer:tracer@localhost:5432/tracer_test?schema=public
+      JWT_SECRET: ci-only-secret-nao-usar-em-producao
+      NODE_ENV: test
+      PORT: 3001
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      # Roda "prisma generate" via postinstall automaticamente.
+      - run: npm ci
+
+      - name: Type-check (src/ e tests/)
+        run: npm run typecheck
+
+      - name: Testes (unitários + integração)
+        run: npm test
+
+      - name: Build de produção
+        run: npm run build

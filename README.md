@@ -1,0 +1,143 @@
+# Tracer
+
+Painel de links inteligente com analytics. Você cadastra um link, recebe um slug curto, compartilha em qualquer canal (bio, currículo, panfleto) e acompanha de onde vieram os cliques — quando, de que dispositivo, país e referrer.
+
+Para o desenho geral do sistema, ver [ARCHITECTURE.md](./ARCHITECTURE.md). Para o porquê de cada decisão técnica, ver [DECISIONS.md](./DECISIONS.md). Para convenções de código e comandos do dia a dia, ver [CLAUDE.md](./CLAUDE.md).
+
+## Stack
+
+Node.js 22 + Express 5 + TypeScript 6 + Prisma 7 + PostgreSQL
+
+## Status
+
+O núcleo funcional do produto está pronto e testado: um usuário se cadastra, cria links, qualquer visitante é redirecionado pelo slug (com o clique registrado em segundo plano) e o usuário acompanha analytics agregados por link.
+
+- [x] Schema Prisma + migration inicial
+- [x] Auth (registro/login, JWT)
+- [x] CRUD de links (criar, listar, desativar)
+- [x] Redirecionamento público por slug + registro de clique
+- [x] Analytics de cliques (por dia, dispositivo, referrer, país)
+- [x] Testes automatizados (48 testes — unitários + integração)
+- [x] CI (GitHub Actions — type-check, testes e build a cada push/PR)
+- [ ] Deploy
+- [ ] Frontend (dashboard)
+
+## Como rodar localmente
+
+### Pré-requisitos
+
+- Node.js 22 (recomendado via [nvm](https://github.com/nvm-sh/nvm))
+- PostgreSQL rodando localmente
+
+> Rodando em WSL? Use o Node instalado dentro do WSL via nvm — o Node do Windows causa erro de UNC path com npm. Ver [decisão #1](./DECISIONS.md#1-nodejs-via-nvm-no-wsl).
+
+### 1. Instalar dependências
+
+```bash
+npm install
+```
+
+### 2. Configurar o banco
+
+Crie um usuário e um banco no Postgres:
+
+```bash
+sudo -u postgres psql -c "CREATE USER tracer WITH PASSWORD 'sua_senha';"
+sudo -u postgres psql -c "CREATE DATABASE tracer OWNER tracer;"
+sudo -u postgres psql -c "ALTER USER tracer CREATEDB;"
+```
+
+(`CREATEDB` é necessário para o Prisma criar o shadow database usado por `migrate dev`.)
+
+### 3. Configurar variáveis de ambiente
+
+Copie `.env.example` para `.env` e ajuste a `DATABASE_URL` com o usuário/senha criados:
+
+```bash
+cp .env.example .env
+```
+
+```
+DATABASE_URL="postgresql://tracer:sua_senha@localhost:5432/tracer?schema=public"
+PORT=3000
+NODE_ENV=development
+```
+
+### 4. Rodar as migrations
+
+```bash
+npm run db:migrate
+```
+
+### 5. Subir o servidor
+
+```bash
+npm run dev
+```
+
+A API sobe em `http://localhost:3000`. Verifique com:
+
+```bash
+curl http://localhost:3000/health
+```
+
+## Rodando os testes
+
+A suíte usa um banco Postgres de teste separado (`tracer_test`), para nunca tocar nos dados do banco de desenvolvimento.
+
+### 1. Criar o banco de teste (uma vez só)
+
+A role `tracer` já tem `CREATEDB` (necessário para o Prisma), então dá pra criar sem `sudo`:
+
+```bash
+PGPASSWORD=sua_senha createdb -h localhost -U tracer tracer_test
+```
+
+### 2. Configurar o `.env.test`
+
+```bash
+cp .env.test.example .env.test
+```
+
+Ajuste a `DATABASE_URL` com o usuário/senha do passo acima, apontando para `tracer_test`.
+
+### 3. Rodar
+
+```bash
+npm test          # roda toda a suíte uma vez (aplica as migrations pendentes automaticamente)
+npm run test:watch # modo watch
+npm run typecheck  # type-check cobrindo src/ e tests/
+```
+
+## Scripts disponíveis
+
+| Script                | Descrição                                              |
+| --------------------- | -------------------------------------------------------- |
+| `npm run dev`          | Sobe o servidor com hot-reload (`tsx watch`)              |
+| `npm run build`        | Compila TypeScript para `dist/`                           |
+| `npm start`            | Roda o build compilado (`dist/server.js`)                 |
+| `npm run db:migrate`   | Cria/aplica migrations a partir do schema Prisma          |
+| `npm run db:generate`  | Regenera o Prisma Client                                    |
+| `npm run db:studio`    | Abre o Prisma Studio (GUI do banco)                        |
+| `npm test`             | Roda toda a suíte de testes (unitários + integração)       |
+| `npm run test:watch`   | Roda os testes em modo watch                                |
+| `npm run typecheck`    | Type-check cobrindo `src/` e `tests/`                        |
+
+## Estrutura do projeto
+
+```
+tracer/
+├── src/
+│   ├── app.ts          # Config do Express
+│   ├── server.ts       # Conecta o Prisma e sobe o servidor
+│   ├── utils/prisma.ts # Singleton do PrismaClient
+│   └── generated/      # Client Prisma (gerado, fora do git)
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+├── tests/
+│   └── integration/    # Testes de ponta a ponta via supertest
+└── prisma.config.ts
+```
+
+Detalhes de cada camada em [ARCHITECTURE.md](./ARCHITECTURE.md#camadas), estratégia de testes em [ARCHITECTURE.md](./ARCHITECTURE.md#testes).
