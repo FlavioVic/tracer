@@ -253,3 +253,13 @@ Cada decisão segue o formato Contexto → Decisão → Justificativa → Trade-
 **Justificativa.** Descrever a infra como código (em vez de clicar tudo manualmente no painel do Render) é reprodutível e revisável — o `render.yaml` documenta a infraestrutura do mesmo jeito que o código documenta a aplicação. Render foi escolhido por ter um free tier com Postgres gerenciado e integração direta com GitHub, sem exigir cartão de crédito para o tier gratuito.
 
 **Trade-offs.** O free tier do Render hiberna o Web Service depois de um tempo sem tráfego — o primeiro acesso depois de um período ocioso demora alguns segundos a mais (cold start) para acordar. O Postgres free do Render também não é permanente indefinidamente (checar o prazo atual no painel do Render ao criar). `cors()` no `app.ts` está liberado para qualquer origem por enquanto — sem uma URL de frontend definida ainda, restringir a origem teria que ser revisitado assim que o frontend for deployado.
+
+## 26. `npm ci --include=dev` explícito no build do Render
+
+**Contexto.** O primeiro deploy falhou no build com dezenas de `TS7016: Could not find a declaration file for module 'express'/'cors'/'bcrypt'/'jsonwebtoken'`, mesmo o `tsc` rodando normalmente.
+
+**Decisão.** `buildCommand` no `render.yaml` passou a ser `npm ci --include=dev && npm run build` (em vez de só `npm ci && npm run build`).
+
+**Justificativa.** O `npm` tem uma config `omit` cujo valor default vira `['dev']` automaticamente sempre que a env var `NODE_ENV=production` está setada — e o Blueprint já define `NODE_ENV: production` como env var do serviço, que o Render aplica também durante o build, não só no runtime. Isso fazia o `npm ci` pular silenciosamente as `devDependencies` — incluindo os `@types/*` de que o `tsc` precisa para compilar (o `tsc` em si rodava porque a imagem do Render traz um TypeScript disponível independente do `node_modules` local). `--include=dev` sobrescreve esse comportamento explicitamente, então funciona não importa o valor de `NODE_ENV`. Validado localmente reproduzindo o mesmo cenário (`NODE_ENV=production npm ci --include=dev`), instalação foi de 203 para 303 pacotes e o build passou limpo.
+
+**Trade-offs.** Nenhum real — é estritamente uma correção de um comportamento surpreendente do npm, não uma troca de robustez por outra coisa.
