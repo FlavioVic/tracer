@@ -174,3 +174,20 @@ npm ci (postinstall → prisma generate) → npm run typecheck → npm test → 
 ```
 
 O job sobe um `postgres:16` como `services:`, com `DATABASE_URL`/`JWT_SECRET` injetados direto no `env:` do job — sem depender de nenhum arquivo `.env` (que são gitignored e não existem no runner).
+
+## Deploy
+
+Produção roda no [Render](https://render.com), descrita como código em [`render.yaml`](./render.yaml) (ver [decisão #25](./DECISIONS.md#25-deploy-no-render-via-blueprint-renderyaml)):
+
+```
+Browser
+  │ HTTPS
+  ▼
+Web Service (Render, plano free)
+  │  build: npm ci && npm run build
+  │  start: npx prisma migrate deploy && node dist/server.js
+  ▼
+Postgres (Render, plano free) — DATABASE_URL injetado automaticamente via Blueprint
+```
+
+`migrate deploy` roda a cada start — o schema de produção nunca fica dessincronizado do código que está subindo. Passos manuais de setup (conectar GitHub, criar o Blueprint) em [README.md](./README.md#deploy).

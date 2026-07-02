@@ -243,3 +243,13 @@ Cada decisão segue o formato Contexto → Decisão → Justificativa → Trade-
 **Justificativa.** Testar contra um Postgres real no CI (em vez de mockar) mantém a mesma garantia da decisão #21 — sem isso, o CI passaria mesmo com uma regressão que só aparece contra o banco de verdade. Injetar env vars diretamente (em vez de commitar um `.env.test` ou tentar reconstruir o arquivo no runner) funciona porque o `dotenv.config()` chamado pelo `vitest.config.ts` e pelo `prisma.config.ts` nunca sobrescreve uma variável já definida em `process.env` — confirmado localmente rodando a suíte com as env vars setadas diretamente no shell (sem nenhum `.env.test` sendo lido).
 
 **Trade-offs.** Não há passo de lint no CI ainda — o projeto não tem ESLint configurado; typecheck (`tsc --noEmit`), testes e build cobrem o que existe hoje. Se um linter for adicionado depois, o workflow ganha mais um passo. O `node-version-file: .nvmrc` faz o CI usar a mesma versão de Node do dev local (`22`) — uma única fonte de verdade para a versão, em vez de hardcodar o número no workflow.
+
+## 25. Deploy no Render via Blueprint (`render.yaml`)
+
+**Contexto.** Precisava de um link ao vivo público para o portfólio, com backend + Postgres gerenciado, sem depender de infraestrutura própria.
+
+**Decisão.** Render, descrito como código em `render.yaml` na raiz do repo (um Blueprint: um Web Service + um Postgres, ambos no plano free). `startCommand` roda `npx prisma migrate deploy` antes de subir o servidor (`node dist/server.js`) — toda vez que uma nova versão sobe, o schema do banco de produção é atualizado automaticamente antes de aceitar tráfego. `JWT_SECRET` é gerado pelo próprio Render (`generateValue: true`); `DATABASE_URL` vem automaticamente do banco declarado no mesmo Blueprint (`fromDatabase`).
+
+**Justificativa.** Descrever a infra como código (em vez de clicar tudo manualmente no painel do Render) é reprodutível e revisável — o `render.yaml` documenta a infraestrutura do mesmo jeito que o código documenta a aplicação. Render foi escolhido por ter um free tier com Postgres gerenciado e integração direta com GitHub, sem exigir cartão de crédito para o tier gratuito.
+
+**Trade-offs.** O free tier do Render hiberna o Web Service depois de um tempo sem tráfego — o primeiro acesso depois de um período ocioso demora alguns segundos a mais (cold start) para acordar. O Postgres free do Render também não é permanente indefinidamente (checar o prazo atual no painel do Render ao criar). `cors()` no `app.ts` está liberado para qualquer origem por enquanto — sem uma URL de frontend definida ainda, restringir a origem teria que ser revisitado assim que o frontend for deployado.

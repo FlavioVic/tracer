@@ -19,7 +19,7 @@ O núcleo funcional do produto está pronto e testado: um usuário se cadastra, 
 - [x] Analytics de cliques (por dia, dispositivo, referrer, país)
 - [x] Testes automatizados (48 testes — unitários + integração)
 - [x] CI (GitHub Actions — type-check, testes e build a cada push/PR)
-- [ ] Deploy
+- [ ] Deploy (Render, `render.yaml` pronto — ver [seção abaixo](#deploy))
 - [ ] Frontend (dashboard)
 
 ## Como rodar localmente
@@ -108,6 +108,18 @@ npm test          # roda toda a suíte uma vez (aplica as migrations pendentes a
 npm run test:watch # modo watch
 npm run typecheck  # type-check cobrindo src/ e tests/
 ```
+
+## Deploy
+
+A infraestrutura de produção é descrita como código em [`render.yaml`](./render.yaml) (ver [decisão #25](./DECISIONS.md#25-deploy-no-render-via-blueprint-renderyaml)): um Web Service + um Postgres, ambos no [Render](https://render.com). Passos manuais (só dá pra fazer pelo painel do Render, com a sua conta):
+
+1. Crie uma conta no Render e conecte sua conta do GitHub.
+2. No painel, **New → Blueprint**, selecione o repositório `tracer`. O Render lê o `render.yaml` sozinho e propõe criar o Web Service (`tracer-api`) e o Postgres (`tracer-db`).
+3. Confirme a criação. `DATABASE_URL` e `JWT_SECRET` são gerados automaticamente — não precisa configurar nada manualmente.
+4. Aguarde o primeiro build. Ele roda `npm ci && npm run build`, depois `npx prisma migrate deploy` antes de subir o servidor — o schema de produção fica sincronizado automaticamente a cada deploy.
+5. Teste com `curl https://<seu-serviço>.onrender.com/health`.
+
+O plano free do Render hiberna o serviço depois de um tempo sem tráfego — o primeiro acesso após ficar ocioso demora alguns segundos a mais para responder (cold start). O Postgres free também costuma ter um prazo de validade — vale conferir no painel do Render ao criar.
 
 ## Scripts disponíveis
 
