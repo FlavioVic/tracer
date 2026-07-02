@@ -2,6 +2,8 @@
 
 Painel de links inteligente com analytics. Você cadastra um link, recebe um slug curto, compartilha em qualquer canal (bio, currículo, panfleto) e acompanha de onde vieram os cliques — quando, de que dispositivo, país e referrer.
 
+🔗 **API ao vivo:** https://tracer-api-2ywo.onrender.com/health (plano free do Render — o primeiro acesso após um tempo ocioso pode demorar alguns segundos para acordar)
+
 Para o desenho geral do sistema, ver [ARCHITECTURE.md](./ARCHITECTURE.md). Para o porquê de cada decisão técnica, ver [DECISIONS.md](./DECISIONS.md). Para convenções de código e comandos do dia a dia, ver [CLAUDE.md](./CLAUDE.md).
 
 ## Stack
@@ -19,7 +21,7 @@ O núcleo funcional do produto está pronto e testado: um usuário se cadastra, 
 - [x] Analytics de cliques (por dia, dispositivo, referrer, país)
 - [x] Testes automatizados (48 testes — unitários + integração)
 - [x] CI (GitHub Actions — type-check, testes e build a cada push/PR)
-- [ ] Deploy (Render, `render.yaml` pronto — ver [seção abaixo](#deploy))
+- [x] Deploy (Render — [ao vivo](https://tracer-api-2ywo.onrender.com/health))
 - [ ] Frontend (dashboard)
 
 ## Como rodar localmente
