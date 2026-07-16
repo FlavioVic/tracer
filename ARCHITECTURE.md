@@ -229,17 +229,21 @@ O job sobe um `postgres:16` como `services:`, com `DATABASE_URL`/`JWT_SECRET` in
 
 ## Deploy
 
-Produção roda no [Render](https://render.com), descrita como código em [`render.yaml`](./render.yaml) (ver [decisão #25](./DECISIONS.md#25-deploy-no-render-via-blueprint-renderyaml)):
+Produção roda no [Render](https://render.com), descrita como código em [`render.yaml`](./render.yaml) (ver [decisão #25](./DECISIONS.md#25-deploy-no-render-via-blueprint-renderyaml) e [decisão #30](./DECISIONS.md#30-frontend-também-no-render-static-site-em-vez-de-vercelnetlify)):
 
 ```
 Browser
   │ HTTPS
+  ├──────────────────────────────┐
+  ▼                               ▼
+Web Service tracer-api           Static Site tracer-frontend
+  │  build: npm ci --include=dev   │  build: npm ci && npm run build (em frontend/)
+  │         && npm run build       │  publica frontend/dist, rewrite SPA (/* → /index.html)
+  │  start: npx prisma migrate     ▼
+  │         deploy && node       Servido direto pela CDN do Render, sem hibernação
+  │         dist/server.js
   ▼
-Web Service (Render, plano free)
-  │  build: npm ci && npm run build
-  │  start: npx prisma migrate deploy && node dist/server.js
-  ▼
-Postgres (Render, plano free) — DATABASE_URL injetado automaticamente via Blueprint
+Postgres tracer-db (Render, plano free) — DATABASE_URL injetado automaticamente via Blueprint
 ```
 
-`migrate deploy` roda a cada start — o schema de produção nunca fica dessincronizado do código que está subindo. Passos manuais de setup (conectar GitHub, criar o Blueprint) em [README.md](./README.md#deploy).
+`migrate deploy` roda a cada start do `tracer-api` — o schema de produção nunca fica dessincronizado do código que está subindo. `tracer-api` exige `FRONTEND_URL` (CORS restrito, decisão #28) apontando pra URL do `tracer-frontend` — só existe depois que o site estático é criado, então é a única env var com preenchimento manual no painel do Render (o resto vem do Blueprint). Passos manuais de setup (conectar GitHub, criar o Blueprint, preencher `FRONTEND_URL`) em [README.md](./README.md#deploy).

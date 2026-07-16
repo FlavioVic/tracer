@@ -131,15 +131,16 @@ npm run typecheck  # type-check cobrindo src/ e tests/
 
 ## Deploy
 
-A infraestrutura de produção é descrita como código em [`render.yaml`](./render.yaml) (ver [decisão #25](./DECISIONS.md#25-deploy-no-render-via-blueprint-renderyaml)): um Web Service + um Postgres, ambos no [Render](https://render.com). Passos manuais (só dá pra fazer pelo painel do Render, com a sua conta):
+A infraestrutura de produção é descrita como código em [`render.yaml`](./render.yaml) (ver [decisão #25](./DECISIONS.md#25-deploy-no-render-via-blueprint-renderyaml) e [decisão #30](./DECISIONS.md#30-frontend-também-no-render-static-site-em-vez-de-vercelnetlify)): um Web Service (backend), um Static Site (frontend) e um Postgres, todos no [Render](https://render.com). Passos manuais (só dá pra fazer pelo painel do Render, com a sua conta):
 
 1. Crie uma conta no Render e conecte sua conta do GitHub.
-2. No painel, **New → Blueprint**, selecione o repositório `tracer`. O Render lê o `render.yaml` sozinho e propõe criar o Web Service (`tracer-api`) e o Postgres (`tracer-db`).
-3. Confirme a criação. `DATABASE_URL` e `JWT_SECRET` são gerados automaticamente. `FRONTEND_URL` (usado pelo CORS restrito, ver [decisão #28](./DECISIONS.md#28-refresh-token-opaco-em-cookie-httponly-substitui-o-jwt-de-7-dias)) precisa ser preenchido manualmente no painel do Render com a URL de produção do frontend, quando ele for deployado.
-4. Aguarde o primeiro build. Ele roda `npm ci && npm run build`, depois `npx prisma migrate deploy` antes de subir o servidor — o schema de produção fica sincronizado automaticamente a cada deploy.
-5. Teste com `curl https://<seu-serviço>.onrender.com/health`.
+2. No painel, **New → Blueprint**, selecione o repositório `tracer`. O Render lê o `render.yaml` sozinho e propõe criar o Web Service (`tracer-api`), o Static Site (`tracer-frontend`) e o Postgres (`tracer-db`).
+3. Confirme a criação. `DATABASE_URL` e `JWT_SECRET` (do backend) são gerados automaticamente; `VITE_API_URL` (do frontend, já aponta pra API de produção) vem fixo no `render.yaml`.
+4. Aguarde os dois builds. O backend roda `npm ci --include=dev && npm run build`, depois `npx prisma migrate deploy` antes de subir o servidor. O frontend roda `npm ci && npm run build` dentro de `frontend/` e publica `frontend/dist` como site estático, com rewrite de SPA (`/* → /index.html`).
+5. Copie a URL pública do `tracer-frontend` (painel do serviço, algo como `https://tracer-frontend-xxxx.onrender.com`) e cole em `FRONTEND_URL`, nas variáveis de ambiente do serviço `tracer-api` — essa var fica com `sync: false` de propósito (o Render não sabe essa URL de antemão, ela só existe depois que o site estático é criado). Salvar a env var já dispara um redeploy automático do backend.
+6. Teste com `curl https://<seu-backend>.onrender.com/health` e abrindo a URL do `tracer-frontend` no navegador (login/registro, cookie de refresh, etc.).
 
-O plano free do Render hiberna o serviço depois de um tempo sem tráfego — o primeiro acesso após ficar ocioso demora alguns segundos a mais para responder (cold start). O Postgres free também costuma ter um prazo de validade — vale conferir no painel do Render ao criar.
+O plano free do Render hiberna o Web Service depois de um tempo sem tráfego — o primeiro acesso após ficar ocioso demora alguns segundos a mais para responder (cold start); o Static Site do frontend não hiberna (é servido como arquivo estático). O Postgres free também costuma ter um prazo de validade — vale conferir no painel do Render ao criar.
 
 ## Scripts disponíveis
 

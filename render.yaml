@@ -24,3 +24,18 @@ services:
         value: production
       - key: FRONTEND_URL
         sync: false
+
+  - type: web
+    name: tracer-frontend
+    runtime: static
+    branch: main
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://tracer-api-2ywo.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
