@@ -198,7 +198,7 @@ Tokens de cor/tipografia ficam em `@theme` dentro de `src/index.css` (Tailwind v
 - [x] Frontend: página de configurações (perfil e troca de senha)
 - [x] Refresh token (access token de 15min + refresh token opaco em cookie httpOnly, rotação e detecção de reuso)
 - [x] GeoIP no campo `pais` dos cliques (base offline, sem chamada de rede)
-- [ ] Deploy do frontend (só roda local por enquanto)
+- [x] Deploy do frontend (Render Static Site, https://tracer-frontend-9v53.onrender.com)
 
 ## Testes
 

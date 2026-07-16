@@ -2,6 +2,7 @@
 
 Painel de links inteligente com analytics. Você cadastra um link, recebe um slug curto, compartilha em qualquer canal (bio, currículo, panfleto) e acompanha de onde vieram os cliques — quando, de que dispositivo, país e referrer.
 
+🔗 **Dashboard ao vivo:** https://tracer-frontend-9v53.onrender.com
 🔗 **API ao vivo:** https://tracer-api-2ywo.onrender.com/health (plano free do Render — o primeiro acesso após um tempo ocioso pode demorar alguns segundos para acordar)
 
 Para o desenho geral do sistema, ver [ARCHITECTURE.md](./ARCHITECTURE.md). Para o porquê de cada decisão técnica, ver [DECISIONS.md](./DECISIONS.md). Para convenções de código e comandos do dia a dia, ver [CLAUDE.md](./CLAUDE.md).
@@ -24,8 +25,8 @@ O núcleo funcional do produto está pronto e testado: um usuário se cadastra, 
 - [x] Testes automatizados (84 testes — unitários + integração)
 - [x] CI (GitHub Actions — type-check, testes e build a cada push/PR)
 - [x] Deploy do backend (Render — [ao vivo](https://tracer-api-2ywo.onrender.com/health))
-- [x] Frontend (dashboard: auth, links, configurações, analytics com gráfico) — roda local, deploy pendente
-- [ ] Deploy do frontend
+- [x] Frontend (dashboard: auth, links, configurações, analytics com gráfico)
+- [x] Deploy do frontend (Render Static Site — [ao vivo](https://tracer-frontend-9v53.onrender.com))
 
 Geolocalização de cliques usa dados [GeoLite2 da MaxMind](https://www.maxmind.com), via o pacote `geoip-country` (ver [decisão #29](./DECISIONS.md#29-geoip-offline-geoip-country-em-vez-de-api-externa-ou-maxmind-oficial)). Este produto inclui dados GeoLite2 criados pela MaxMind, disponíveis em https://www.maxmind.com.
 
