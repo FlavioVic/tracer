@@ -15,6 +15,11 @@ const FRONTEND_URL: string =
 
 const app = express();
 
+// Render (e qualquer PaaS atrás de load balancer) entrega a requisição via um
+// único hop de proxy — sem isso, req.ip vira o IP interno do proxy em vez do
+// IP real do visitante, quebrando ipHash e a geolocalização do clique.
+app.set("trust proxy", 1);
+
 app.use(cors({ origin: FRONTEND_URL, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());

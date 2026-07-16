@@ -19,12 +19,15 @@ O núcleo funcional do produto está pronto e testado: um usuário se cadastra, 
 - [x] Auth (registro/login, JWT)
 - [x] CRUD de links (criar, listar, desativar)
 - [x] Redirecionamento público por slug + registro de clique
-- [x] Analytics de cliques (por dia, dispositivo, referrer, país)
-- [x] Testes automatizados (48 testes — unitários + integração)
+- [x] Analytics de cliques (por dia, dispositivo, referrer, país — geolocalizado via GeoIP offline)
+- [x] Refresh token (access token de 15min + refresh token em cookie httpOnly, rotação e detecção de reuso)
+- [x] Testes automatizados (84 testes — unitários + integração)
 - [x] CI (GitHub Actions — type-check, testes e build a cada push/PR)
 - [x] Deploy do backend (Render — [ao vivo](https://tracer-api-2ywo.onrender.com/health))
-- [x] Frontend (dashboard: auth, links, analytics com gráfico) — roda local, deploy pendente
+- [x] Frontend (dashboard: auth, links, configurações, analytics com gráfico) — roda local, deploy pendente
 - [ ] Deploy do frontend
+
+Geolocalização de cliques usa dados [GeoLite2 da MaxMind](https://www.maxmind.com), via o pacote `geoip-country` (ver [decisão #29](./DECISIONS.md#29-geoip-offline-geoip-country-em-vez-de-api-externa-ou-maxmind-oficial)). Este produto inclui dados GeoLite2 criados pela MaxMind, disponíveis em https://www.maxmind.com.
 
 ## Como rodar localmente
 

@@ -124,7 +124,7 @@ Express → redirectController → linkService.findRedirectTarget(slug)
            → grava Click { linkId, ipHash, referrer, userAgent, dispositivo }
 ```
 
-Rota montada em `app.ts` como `GET /:slug`, depois de `/health`, `/api/auth` e `/api/links` (senão o padrão de um segmento capturaria essas rotas antes delas serem avaliadas). O registro do clique é best-effort: roda depois de `res.redirect()` já ter sido chamado, e qualquer falha só vai para o log (`console.error`), nunca derruba o redirect. `pais` ainda não é preenchido — exigiria integrar uma base/serviço de GeoIP a partir do IP, deixado para uma iteração futura.
+Rota montada em `app.ts` como `GET /:slug`, depois de `/health`, `/api/auth` e `/api/links` (senão o padrão de um segmento capturaria essas rotas antes delas serem avaliadas). O registro do clique é best-effort: roda depois de `res.redirect()` já ter sido chamado, e qualquer falha só vai para o log (`console.error`), nunca derruba o redirect. `pais` é preenchido via GeoIP offline (`detectCountry`, ver [decisão #29](./DECISIONS.md#29-geoip-offline-geoip-country-em-vez-de-api-externa-ou-maxmind-oficial)) — fica vazio se o IP for local/privado (dev local, por exemplo) ou não resolver.
 
 ## Autenticação
 
@@ -192,11 +192,12 @@ Tokens de cor/tipografia ficam em `@theme` dentro de `src/index.css` (Tailwind v
 - [x] CRUD de `Link` (criar, listar, desativar) — protegido por `authGuard`
 - [x] Redirecionamento público (`GET /:slug`) com registro de `Click` (best-effort, sem `pais` ainda)
 - [x] Endpoints de analytics (`GET /api/links/:id/analytics`, agregação por dia/dispositivo/referrer/país)
-- [x] Testes automatizados (unitários + integração, 78 testes cobrindo auth/users/links/redirect/analytics)
+- [x] Testes automatizados (unitários + integração, 84 testes cobrindo auth/users/links/redirect/analytics)
 - [x] CI (GitHub Actions — type-check, testes e build a cada push/PR para `main`)
 - [x] Frontend: auth (login/registro), CRUD de link (criar/listar/desativar), analytics por link com gráfico interativo
 - [x] Frontend: página de configurações (perfil e troca de senha)
 - [x] Refresh token (access token de 15min + refresh token opaco em cookie httpOnly, rotação e detecção de reuso)
+- [x] GeoIP no campo `pais` dos cliques (base offline, sem chamada de rede)
 - [ ] Deploy do frontend (só roda local por enquanto)
 
 ## Testes
