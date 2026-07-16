@@ -1,3 +1,4 @@
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import { redirectController } from "./controllers/redirect.controller";
@@ -6,10 +7,17 @@ import { authRoutes } from "./routes/auth.routes";
 import { linkRoutes } from "./routes/link.routes";
 import { userRoutes } from "./routes/user.routes";
 
+const FRONTEND_URL: string =
+  process.env.FRONTEND_URL ??
+  (() => {
+    throw new Error("FRONTEND_URL não definido no .env");
+  })();
+
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: FRONTEND_URL, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

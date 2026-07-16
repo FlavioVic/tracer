@@ -1,13 +1,25 @@
 import bcrypt from "bcrypt";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, UnauthorizedError } from "../errors/app-error";
+import { refreshTokenRepository } from "../repositories/refresh-token.repository";
 import { userRepository } from "../repositories/user.repository";
+import { hashToken } from "../utils/hash";
 import { authService } from "./auth.service";
 
 vi.mock("../repositories/user.repository", () => ({
   userRepository: {
     findByEmail: vi.fn(),
+    findById: vi.fn(),
     create: vi.fn(),
+  },
+}));
+
+vi.mock("../repositories/refresh-token.repository", () => ({
+  refreshTokenRepository: {
+    create: vi.fn(),
+    findByHash: vi.fn(),
+    revoke: vi.fn(),
+    revokeAllForUser: vi.fn(),
   },
 }));
 
@@ -109,6 +121,111 @@ describe("authService", () => {
 
       expect(result.user.email).toBe("a@example.com");
       expect(typeof result.accessToken).toBe("string");
+    });
+  });
+
+  describe("refresh", () => {
+    it("lança UnauthorizedError se nenhum token for informado", async () => {
+      await expect(authService.refresh(undefined)).rejects.toBeInstanceOf(UnauthorizedError);
+    });
+
+    it("lança UnauthorizedError se o token não existir", async () => {
+      vi.mocked(refreshTokenRepository.findByHash).mockResolvedValue(null);
+
+      await expect(authService.refresh("token-qualquer")).rejects.toBeInstanceOf(
+        UnauthorizedError,
+      );
+    });
+
+    it("lança UnauthorizedError e revoga todas as sessões se o token já foi usado (reuso)", async () => {
+      vi.mocked(refreshTokenRepository.findByHash).mockResolvedValue({
+        id: "rt1",
+        tokenHash: hashToken("token-usado"),
+        userId: "user1",
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        revokedAt: new Date(),
+        createdAt: new Date(),
+      });
+
+      await expect(authService.refresh("token-usado")).rejects.toBeInstanceOf(UnauthorizedError);
+      expect(refreshTokenRepository.revokeAllForUser).toHaveBeenCalledWith("user1");
+    });
+
+    it("lança UnauthorizedError se o token estiver expirado", async () => {
+      vi.mocked(refreshTokenRepository.findByHash).mockResolvedValue({
+        id: "rt1",
+        tokenHash: hashToken("token-expirado"),
+        userId: "user1",
+        expiresAt: new Date(Date.now() - 1000),
+        revokedAt: null,
+        createdAt: new Date(),
+      });
+
+      await expect(authService.refresh("token-expirado")).rejects.toBeInstanceOf(
+        UnauthorizedError,
+      );
+    });
+
+    it("rotaciona o token e retorna um novo par válido", async () => {
+      vi.mocked(refreshTokenRepository.findByHash).mockResolvedValue({
+        id: "rt1",
+        tokenHash: hashToken("token-valido"),
+        userId: "user1",
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        revokedAt: null,
+        createdAt: new Date(),
+      });
+      vi.mocked(userRepository.findById).mockResolvedValue({
+        id: "user1",
+        email: "a@example.com",
+        nome: "A",
+        senhaHash: "hash",
+        createdAt: new Date(),
+      });
+
+      const result = await authService.refresh("token-valido");
+
+      expect(refreshTokenRepository.revoke).toHaveBeenCalledWith("rt1");
+      expect(typeof result.accessToken).toBe("string");
+      expect(typeof result.refreshToken).toBe("string");
+      expect(result.refreshToken).not.toBe("token-valido");
+    });
+  });
+
+  describe("logout", () => {
+    it("não faz nada se nenhum token for informado", async () => {
+      await authService.logout(undefined);
+      expect(refreshTokenRepository.findByHash).not.toHaveBeenCalled();
+    });
+
+    it("revoga o token se ele existir e ainda não tiver sido revogado", async () => {
+      vi.mocked(refreshTokenRepository.findByHash).mockResolvedValue({
+        id: "rt1",
+        tokenHash: hashToken("token-ativo"),
+        userId: "user1",
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        revokedAt: null,
+        createdAt: new Date(),
+      });
+
+      await authService.logout("token-ativo");
+
+      expect(refreshTokenRepository.revoke).toHaveBeenCalledWith("rt1");
+    });
+
+    it("é idempotente se o token já estiver revogado", async () => {
+      vi.mocked(refreshTokenRepository.findByHash).mockResolvedValue({
+        id: "rt1",
+        tokenHash: hashToken("token-revogado"),
+        userId: "user1",
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        revokedAt: new Date(),
+        createdAt: new Date(),
+      });
+
+      await authService.logout("token-revogado");
+
+      expect(refreshTokenRepository.revoke).not.toHaveBeenCalled();
     });
   });
 });

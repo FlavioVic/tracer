@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { LinkIcon, SettingsIcon } from "./icons";
+import { api } from "../lib/api";
 import { clearSession } from "../lib/auth";
 import { useProfile } from "../hooks/useProfile";
 
@@ -52,9 +53,13 @@ function UserRow() {
   const navigate = useNavigate();
   const { data: user } = useProfile();
 
-  function handleLogout() {
-    clearSession();
-    navigate("/login");
+  async function handleLogout() {
+    try {
+      await api.post("/api/auth/logout");
+    } finally {
+      clearSession();
+      navigate("/login");
+    }
   }
 
   if (!user) return null;

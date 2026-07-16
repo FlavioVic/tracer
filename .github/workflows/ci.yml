@@ -30,6 +30,7 @@ jobs:
       JWT_SECRET: ci-only-secret-nao-usar-em-producao
       NODE_ENV: test
       PORT: 3001
+      FRONTEND_URL: http://localhost:5173
 
     steps:
       - uses: actions/checkout@v4

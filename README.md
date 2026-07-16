@@ -132,7 +132,7 @@ A infraestrutura de produção é descrita como código em [`render.yaml`](./ren
 
 1. Crie uma conta no Render e conecte sua conta do GitHub.
 2. No painel, **New → Blueprint**, selecione o repositório `tracer`. O Render lê o `render.yaml` sozinho e propõe criar o Web Service (`tracer-api`) e o Postgres (`tracer-db`).
-3. Confirme a criação. `DATABASE_URL` e `JWT_SECRET` são gerados automaticamente — não precisa configurar nada manualmente.
+3. Confirme a criação. `DATABASE_URL` e `JWT_SECRET` são gerados automaticamente. `FRONTEND_URL` (usado pelo CORS restrito, ver [decisão #28](./DECISIONS.md#28-refresh-token-opaco-em-cookie-httponly-substitui-o-jwt-de-7-dias)) precisa ser preenchido manualmente no painel do Render com a URL de produção do frontend, quando ele for deployado.
 4. Aguarde o primeiro build. Ele roda `npm ci && npm run build`, depois `npx prisma migrate deploy` antes de subir o servidor — o schema de produção fica sincronizado automaticamente a cada deploy.
 5. Teste com `curl https://<seu-serviço>.onrender.com/health`.
 

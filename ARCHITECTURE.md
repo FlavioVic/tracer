@@ -65,13 +65,15 @@ As pastas `src/routes/`, `src/controllers/`, `src/services/` e `src/repositories
 
 ```
 User 1───N Link 1───N Click
+User 1───N RefreshToken
 ```
 
-| Model | Campos principais                                                                              | Notas                                                     |
-| ----- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| User  | `id`, `email` (único), `senhaHash`, `nome`, `createdAt`                                           | Dono dos links                                             |
-| Link  | `id`, `slug` (único), `urlOriginal`, `userId`, `ativo`, `expiraEm`, `createdAt`                    | `ativo` desliga o link sem apagar (soft toggle)             |
-| Click | `id`, `linkId`, `timestamp`, `ipHash`, `pais`, `referrer`, `userAgent`, `dispositivo`               | Snapshot do contexto do clique — sem tabelas normalizadas    |
+| Model        | Campos principais                                                                              | Notas                                                     |
+| ------------ | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| User         | `id`, `email` (único), `senhaHash`, `nome`, `createdAt`                                           | Dono dos links                                             |
+| Link         | `id`, `slug` (único), `urlOriginal`, `userId`, `ativo`, `expiraEm`, `createdAt`                    | `ativo` desliga o link sem apagar (soft toggle)             |
+| Click        | `id`, `linkId`, `timestamp`, `ipHash`, `pais`, `referrer`, `userAgent`, `dispositivo`               | Snapshot do contexto do clique — sem tabelas normalizadas    |
+| RefreshToken | `id`, `tokenHash` (único), `userId`, `expiresAt`, `revokedAt`, `createdAt`                          | Só o hash sha256 do token fica no banco, nunca o valor bruto |
 
 IDs de todos os models usam `cuid()` (ver [decisão #6](./DECISIONS.md#6-ids-com-cuid-em-vez-de-auto-increment-ou-uuid)).
 
@@ -126,23 +128,31 @@ Rota montada em `app.ts` como `GET /:slug`, depois de `/health`, `/api/auth` e `
 
 ## Autenticação
 
-JWT simples, sem refresh token (ver [decisão #13](./DECISIONS.md#13-jwt-simples-sem-refresh-token)).
+Access token (JWT) de vida curta + refresh token opaco revogável em cookie `httpOnly` (ver [decisão #28](./DECISIONS.md#28-refresh-token-opaco-em-cookie-httponly-substitui-o-jwt-de-7-dias), que substitui a #13).
 
 ```
 POST /api/auth/register  { nome, email, senha }
-  → 201 { user: { id, nome, email }, accessToken }
+  → 201 { user: { id, nome, email }, accessToken } + Set-Cookie: refreshToken (httpOnly)
   → 409 se o e-mail já existe
 
 POST /api/auth/login  { email, senha }
-  → 200 { user: { id, nome, email }, accessToken }
+  → 200 { user: { id, nome, email }, accessToken } + Set-Cookie: refreshToken (httpOnly)
   → 401 em credenciais inválidas
+
+POST /api/auth/refresh  (sem body — lê o cookie refreshToken)
+  → 200 { accessToken } + Set-Cookie: refreshToken novo (rotacionado)
+  → 401 se o cookie estiver ausente/inválido/expirado/já usado
+     (reuso de um token já rotacionado revoga todas as sessões do usuário)
+
+POST /api/auth/logout  (sem body — lê o cookie refreshToken)
+  → 204, revoga o refresh token e limpa o cookie
 
 Rotas protegidas (a partir da feature de links):
   Authorization: Bearer <accessToken>
   → validado pelo middleware authGuard (src/middlewares/auth-guard.ts)
 ```
 
-`GET /:slug` (o redirecionamento em si) será público — não exige autenticação.
+`accessToken` tem TTL de 15 minutos; o `refreshToken` (armazenado só como hash sha256 no banco, model `RefreshToken`) tem TTL de 30 dias. `GET /:slug` (o redirecionamento em si) segue público — não exige autenticação.
 
 ## Frontend
 
@@ -182,10 +192,11 @@ Tokens de cor/tipografia ficam em `@theme` dentro de `src/index.css` (Tailwind v
 - [x] CRUD de `Link` (criar, listar, desativar) — protegido por `authGuard`
 - [x] Redirecionamento público (`GET /:slug`) com registro de `Click` (best-effort, sem `pais` ainda)
 - [x] Endpoints de analytics (`GET /api/links/:id/analytics`, agregação por dia/dispositivo/referrer/país)
-- [x] Testes automatizados (unitários + integração, 48 testes cobrindo auth/links/redirect/analytics)
+- [x] Testes automatizados (unitários + integração, 78 testes cobrindo auth/users/links/redirect/analytics)
 - [x] CI (GitHub Actions — type-check, testes e build a cada push/PR para `main`)
 - [x] Frontend: auth (login/registro), CRUD de link (criar/listar/desativar), analytics por link com gráfico interativo
-- [ ] Frontend: página de configurações, refresh de token
+- [x] Frontend: página de configurações (perfil e troca de senha)
+- [x] Refresh token (access token de 15min + refresh token opaco em cookie httpOnly, rotação e detecção de reuso)
 - [ ] Deploy do frontend (só roda local por enquanto)
 
 ## Testes
