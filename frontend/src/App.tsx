@@ -5,6 +5,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { LinksPage } from "./pages/LinksPage";
 import { LinkAnalyticsPage } from "./pages/LinkAnalyticsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route element={<DashboardLayout />}>
           <Route index element={<LinksPage />} />
           <Route path="links/:id" element={<LinkAnalyticsPage />} />
+          <Route path="configuracoes" element={<SettingsPage />} />
         </Route>
       </Route>
 

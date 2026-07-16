@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { LinkIcon, SettingsIcon } from "./icons";
 import { clearSession } from "../lib/auth";
+import { useProfile } from "../hooks/useProfile";
 
 const navItems = [
   { to: "/", label: "Meus links", icon: LinkIcon, end: true },
@@ -49,8 +50,7 @@ function initials(nome: string) {
 
 function UserRow() {
   const navigate = useNavigate();
-  const rawUser = localStorage.getItem("tracer_user");
-  const user = rawUser ? (JSON.parse(rawUser) as { nome: string; email: string }) : null;
+  const { data: user } = useProfile();
 
   function handleLogout() {
     clearSession();

@@ -4,6 +4,7 @@ import { redirectController } from "./controllers/redirect.controller";
 import { errorHandler } from "./middlewares/error-handler";
 import { authRoutes } from "./routes/auth.routes";
 import { linkRoutes } from "./routes/link.routes";
+import { userRoutes } from "./routes/user.routes";
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/links", linkRoutes);
+app.use("/api/users", userRoutes);
 
 // Redirecionamento público — precisa vir depois das rotas acima, senão
 // "/:slug" capturaria qualquer path de um segmento só antes delas.

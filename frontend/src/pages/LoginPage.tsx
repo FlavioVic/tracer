@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { api } from "../lib/api";
-import { setSession } from "../lib/auth";
+import { setToken } from "../lib/auth";
 import type { AuthResponse } from "../types/api";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
@@ -10,6 +11,7 @@ import { LinkIcon } from "../components/icons";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +26,8 @@ export function LoginPage() {
         email,
         senha,
       });
-      setSession(data.accessToken, data.user);
+      setToken(data.accessToken);
+      queryClient.setQueryData(["me"], data.user);
       navigate("/");
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 401) {

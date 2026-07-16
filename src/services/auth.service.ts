@@ -3,12 +3,9 @@ import { ConflictError, UnauthorizedError } from "../errors/app-error";
 import { userRepository } from "../repositories/user.repository";
 import type { LoginDto, RegisterDto } from "../schemas/auth.schema";
 import { signAccessToken } from "../utils/jwt";
+import { toPublicUser } from "../utils/public-user";
 
 const SALT_ROUNDS = 10;
-
-function toPublicUser(user: { id: string; nome: string; email: string }) {
-  return { id: user.id, nome: user.nome, email: user.email };
-}
 
 export const authService = {
   async register(dto: RegisterDto) {

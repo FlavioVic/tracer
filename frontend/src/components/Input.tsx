@@ -14,7 +14,7 @@ export function Input({ label, hint, error, id, className = "", ...props }: Inpu
       </label>
       <input
         id={id}
-        className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors focus:ring-3 focus:ring-accent/12 ${
+        className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors focus:ring-3 focus:ring-accent/12 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-text-secondary ${
           error
             ? "border-danger focus:border-danger focus:ring-danger/12"
             : "border-border focus:border-accent"
